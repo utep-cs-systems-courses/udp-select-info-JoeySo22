@@ -12,15 +12,19 @@ LOWERCASE_PORT = 50001
 upperServerAddr = ("", UPPERCASE_PORT)   # any addr, port 50,000
 lowerServerAddr = ("", LOWERCASE_PORT)
 
-def change_case(sock, upper=True):
+def change_upper(sock):
   "run this function when sock has rec'd a message"
   message, clientAddrPort = sock.recvfrom(999) #was 2048
   print("from %s: rec'd '%s'" % (repr(clientAddrPort), message))
   modifiedMessage = ''
-  if upper:
-    modifiedMessage = message.decode().upper().encode()
-  else:
-    modifiedMessage = message.decode().lower().encode()
+  modifiedMessage = message.decode().upper().encode()
+  sock.sendto(modifiedMessage, clientAddrPort)
+
+def change_lower(sock):
+  message, clientAddrPort = sock.recvfrom(999)
+  print("from %s: rec'd '%s'" % (repr(clientAddrPort), message))
+  modifiedMessage = ''
+  modifiedMessage = message.decode().lower().encode()
   sock.sendto(modifiedMessage, clientAddrPort)
   
 
@@ -40,10 +44,8 @@ errorSockFunc = {}              # broken
 timeout = 5                     # select delay before giving up, in seconds
 
 # function to call when upperServerSocket is ready for reading
-readSockFunc[upperServerSocket] = change_case
-readSockFunc[lowerServerSocket] = change_case
-
-print(lowerServerSocket)
+readSockFunc[upperServerSocket] = change_upper
+readSockFunc[lowerServerSocket] = change_lower
 
 print("ready to receive")
 while 1:
@@ -55,8 +57,5 @@ while 1:
     print("timeout: no events")
   for sock in readRdySet:
     current_port = sock.getsockname()[1]
-    if current_port is UPPERCASE_PORT: 
-      readSockFunc[sock](sock)
-    elif current_port is LOWERCASE_PORT:
-      readSockFunc[sock](sock, False)
+    readSockFunc[sock](sock)
 
